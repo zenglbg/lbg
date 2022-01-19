@@ -1,34 +1,15 @@
 version: '3.8'
 
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        # Update 'VARIANT' to pick an LTS version of Node.js: 16, 14, 12.
-        # Append -bullseye or -buster to pin to an OS version.
-        # Use -bullseye variants on local arm64/Apple Silicon.
-        VARIANT: "16"
-    volumes:
-      - ..:/workspace:cached
-    tty: true
+  nginx:
+    build: 
+      context: ./nginx
 
-    # Overrides default command so things don't shut down after the process ends.
-    # command: node /workspace/run.js
-    command: sh -c "cd /workspace && yarn install && yarn build && yarn prod && sleep infinity"
-
-    # command: sleep infinity
-
-    # Runs app on the same network as the database container, allows "forwardPorts" in devcontainer.json function.
-    network_mode: service:db
-    # Uncomment the next line to use a non-root user for all processes.
-    # user: node
-   
-    # Use "forwardPorts" in **devcontainer.json** to forward an app port locally. 
-    # (Adding the "ports" property to this file will not forward from a Codespace.)
-
-
+      
+  redis:
+    build: 
+      context: ./redis
+    
   db:
     image: postgres:latest
     restart: unless-stopped
@@ -42,6 +23,33 @@ services:
       - "3000:3000"
     # Add "forwardPorts": ["5432"] to **devcontainer.json** to forward PostgreSQL locally.
     # (Adding the "ports" property to this file will not forward from a Codespace.)
+  app:
+      build:
+        context: .
+        dockerfile: Dockerfile
+        args:
+          # Update 'VARIANT' to pick an LTS version of Node.js: 16, 14, 12.
+          # Append -bullseye or -buster to pin to an OS version.
+          # Use -bullseye variants on local arm64/Apple Silicon.
+          VARIANT: "16"
+      volumes:
+        - ..:/workspace:cached
+      tty: true
+
+      # Overrides default command so things don't shut down after the process ends.
+      # command: node /workspace/run.js
+      command: sleep infinity
+
+      # Runs app on the same network as the database container, allows "forwardPorts" in devcontainer.json function.
+      network_mode: service:db
+      # Uncomment the next line to use a non-root user for all processes.
+      # user: node
+    
+      # Use "forwardPorts" in **devcontainer.json** to forward an app port locally. 
+      # (Adding the "ports" property to this file will not forward from a Codespace.)
+      # deploy:
+        # command: sh -c "cd /workspace && yarn install && yarn build && yarn prod && sleep infinity"
+
 
 volumes:
   postgres-data: null
