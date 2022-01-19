@@ -12,10 +12,11 @@ services:
         VARIANT: "16"
     volumes:
       - ..:/workspace:cached
+    tty: true
 
     # Overrides default command so things don't shut down after the process ends.
     # command: node /workspace/run.js
-    command: sh -c "cd /workspace && yarn install && yarn build && yarn prod"
+    command: sh -c "cd /workspace && yarn install && yarn build && yarn prod && sleep infinity"
 
     # command: sleep infinity
 
