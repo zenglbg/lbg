@@ -1,0 +1,236 @@
+user root ;
+worker_processes 2; #设置值和CPU核心数一致
+error_log /usr/local/nginx/logs/nginx_error.log crit; #日志位置和日志级别
+pid /usr/local/nginx/nginx.pid;
+#Specifies the value for maximum file descriptors that can be opened by this process.
+worker_rlimit_nofile 65535;
+events {
+  use epoll;
+  worker_connections 65535;
+}
+http {
+  include mime.types;
+  default_type application/octet-stream;
+  server_names_hash_bucket_size 128;
+  client_header_buffer_size 32k;
+  large_client_header_buffers 4 32k;
+  client_max_body_size 1024m;
+  client_body_buffer_size 10m;
+  sendfile on;
+  tcp_nopush on;
+  keepalive_timeout 120;
+  server_tokens off;
+  tcp_nodelay on;
+
+  fastcgi_connect_timeout 300;
+  fastcgi_send_timeout 300;
+  fastcgi_read_timeout 300;
+  fastcgi_buffer_size 64k;
+  fastcgi_buffers 4 64k;
+  fastcgi_busy_buffers_size 128k;
+  fastcgi_temp_file_write_size 128k;
+  fastcgi_intercept_errors on;
+
+  #Gzip Compression
+  gzip on;
+  gzip_buffers 16 8k;
+  gzip_comp_level 6;
+  gzip_http_version 1.1;
+  gzip_min_length 256;
+  gzip_proxied any;
+  gzip_vary on;
+  gzip_types
+  text/xml application/xml application/atom+xml application/rss+xml application/xhtml+xml image/svg+xml
+  text/javascript application/javascript application/x-javascript
+  text/x-json application/json application/x-web-app-manifest+json
+  text/css text/plain text/x-component
+  font/opentype application/x-font-ttf application/vnd.ms-fontobject
+  image/x-icon;
+  gzip_disable "MSIE [1-6]\.(?!.*SV1)";
+
+  #If you have a lot of static files to serve through Nginx then caching of the files' metadata (not the actual files' contents) can save some latency.
+  open_file_cache max=1000 inactive=20s;
+  open_file_cache_valid 30s;
+  open_file_cache_min_uses 2;
+  open_file_cache_errors on;
+
+  ######################## default ############################
+  server {
+    listen 80;
+    server_name _;
+    access_log /usr/local/nginx/logs/access_nginx.log combined;
+    root /usr/local/tomcat/webapps/;
+    index index.html index.htm index.php;
+    #error_page 404 /404.html;
+    #error_page 502 /502.html;
+    location /nginx_status {
+      # stub_status on;
+      access_log off;
+      allow 127.0.0.1;
+      deny all;
+    }
+    location ~ [^/]\.php(/|$) {
+      #fastcgi_pass remote_php_ip:9000;
+      fastcgi_pass unix:/dev/shm/php-cgi.sock;
+      fastcgi_index index.php;
+      include fastcgi.conf;
+    }
+    location ~ .*\.(gif|jpg|jpeg|png|bmp|swf|flv|mp4|ico)$ {
+      expires 30d;
+      access_log off;
+    }
+    location ~ .*\.(js|css)?$ {
+      expires 7d;
+      access_log off;
+    }
+    location ~ /\.ht {
+      deny all;
+    }
+  }
+
+  server {
+    listen 80;
+    server_name web.szyunzhongxiang.com;
+    location / {
+      root /usr/local/tomcat/webapps/;
+      index index.html index.htm;
+      proxy_pass http://127.0.0.1:8080;
+      proxy_redirect off;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Host $http_host;
+      proxy_set_header X-NginX-Proxy true;
+    }
+  }
+
+  server {
+    listen 80;
+    server_name dusmil.totoroiot.cn;
+    location / {
+      # root   /usr/local/tomcat/webapps/;
+      # index  index.html index.htm;
+      proxy_pass http://127.0.0.1:20187;
+      proxy_redirect off;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Host $http_host;
+      proxy_set_header X-NginX-Proxy true;
+    }
+  }
+
+
+  server {
+    listen 443;
+    server_name web.szyunzhongxiang.com;
+    ssl on;
+    #ssl_certificate lock/1_web.szyunzhongxiang.com_bundle.crt;
+    #ssl_certificate_key lock/2_web.szyunzhongxiang.com.key;
+    ssl_certificate lock/web.szyunzhongxiang.com_bundle.crt;
+    ssl_certificate_key lock/web.szyunzhongxiang.com.key;
+    ssl_session_timeout 5m;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_prefer_server_ciphers on;
+    location / {
+      proxy_pass http://127.0.0.1:8080;
+      #root   /usr/local/tomcat/webapps/;
+      #index  index.html index.htm;
+      proxy_redirect off;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Host $http_host;
+      proxy_set_header X-NginX-Proxy true;
+    }
+  }
+
+  server {
+    listen 443;
+    server_name api.szyunzhongxiang.com;
+    ssl on;
+    ssl_certificate lock/api.szyunzhongxiang.com_bundle.crt;
+    ssl_certificate_key lock/api.szyunzhongxiang.com.key;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    location / {
+      proxy_pass http://127.0.0.1:11111;
+      #root   /usr/local/tomcat/webapps/;
+      #index  index.html index.htm;
+      proxy_redirect off;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Host $http_host;
+      proxy_set_header X-NginX-Proxy true;
+    }
+  }
+  server {
+    listen 443;
+    server_name app.szyunzhongxiang.com;
+    ssl on;
+    ssl_certificate lock/app.szyunzhongxiang.com_bundle.crt;
+    ssl_certificate_key lock/app.szyunzhongxiang.com.key;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    location / {
+      proxy_pass http://127.0.0.1:11111;
+      #root   /usr/local/tomcat/webapps/;
+      #index  index.html index.htm;
+      proxy_redirect off;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Host $http_host;
+      proxy_set_header X-NginX-Proxy true;
+    }
+  }
+  server {
+    listen 443;
+    server_name gx.lmyiot.com;
+    ssl on;
+    ssl_certificate lock/gx.lmyiot.com.pem;
+    ssl_certificate_key lock/gx.lmyiot.com.key;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    location / {
+      root /data/tcp/lomo_ui;
+      try_files $uri $uri/ /index.html;
+      index index.html index.htm;
+    }
+
+    location /prod-api/ {
+      proxy_set_header Host $http_host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header REMOTE-HOST $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_pass http://localhost:22219/;
+    }
+  }
+
+  server {
+    listen 80;
+    # 你的域名
+    server_name airport.lmyiot.com;
+    index index.html index.htm;
+    # 你的打包路径
+    root /data/tcp/airport_ui;
+    # gzip 加速
+    # gzip on;
+    # gzip_static on;
+    # gzip_min_length 1k;
+    # gzip_comp_level 9;
+    # gzip_types text/plain application/javascript application/x-javascript text/css application/xml text/javascript application/x-httpd-php image/jpeg image/ gif image/png;
+    # gzip_vary on;
+    # gzip_disable "MSIE [1-6]\.";
+    location / {
+      try_files $uri $uri/ /index.html =404;
+    }
+    location /api/ {
+      # 你的后台地址
+      proxy_pass http://127.0.0.1:20679/;
+      #proxy_set_header Host $http_host;
+      client_max_body_size 20m;
+      client_body_buffer_size 1280k;
+      proxy_connect_timeout 15s;
+      proxy_send_timeout 15s;
+      proxy_read_timeout 15s;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+  }
+  ########################## vhost #############################
+  include vhost/*.conf;
+}

@@ -4,12 +4,23 @@ services:
   nginx:
     build: 
       context: ./nginx
+    ports:
+      - "80:80"
+      - "3333:3333"
+      - "9567:9567"
+    networks:
+      - frontend
 
       
   redis:
     build: 
       context: ./redis
-    
+    ports:
+      - '6379:6379'
+    networks:
+      - frontend
+     
+
   db:
     image: postgres:latest
     restart: unless-stopped
@@ -19,8 +30,9 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
       POSTGRES_DB: postgres
-    ports:
-      - "3000:3000"
+    networks:
+      - backend
+
     # Add "forwardPorts": ["5432"] to **devcontainer.json** to forward PostgreSQL locally.
     # (Adding the "ports" property to this file will not forward from a Codespace.)
   app:
@@ -41,7 +53,11 @@ services:
       command: sleep infinity
 
       # Runs app on the same network as the database container, allows "forwardPorts" in devcontainer.json function.
-      network_mode: service:db
+      # network_mode: service:db
+      networks:
+        - backend
+        - frontend
+        
       # Uncomment the next line to use a non-root user for all processes.
       # user: node
     
@@ -50,6 +66,9 @@ services:
       # deploy:
         # command: sh -c "cd /workspace && yarn install && yarn build && yarn prod && sleep infinity"
 
+networks:
+  frontend:
+  backend:
 
 volumes:
   postgres-data: null
