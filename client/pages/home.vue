@@ -1,7 +1,7 @@
 <template>
-  <div>
-    <h1>home</h1>
-
-    <nuxt-link to="/">base</nuxt-link>
-  </div>
+  <div>scoped</div>
 </template>
+
+<script setup lang="ts"></script>
+
+<style scoped></style>
