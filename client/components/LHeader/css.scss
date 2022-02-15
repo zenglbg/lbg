@@ -18,7 +18,6 @@ $color-main-bg: #363636;
       background: transparent;
       @include flex-row-y();
       .nav-toggle {
-        background: pink;
         width: 100px;
         height: inherit;
       }
@@ -35,6 +34,8 @@ $color-main-bg: #363636;
           &__link {
             text-decoration: none;
             text-transform: uppercase;
+            margin-left: 5px;
+            color: #fff;
           }
         }
       }
@@ -42,10 +43,12 @@ $color-main-bg: #363636;
       .nav-right {
         height: inherit;
         margin-left: auto;
-        background: pink;
+        display: flex;
+        align-items: center;
+        padding-right: 20px;
 
         &-item {
-          width: 100px;
+          width: 30px;
           height: inherit;
           @include flex-row-xy();
         }
